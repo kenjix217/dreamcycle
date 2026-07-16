@@ -1,7 +1,7 @@
 # DreamCycle Technical Thesis and Research Report
 
 Author: Kenny Jin
-Project: DreamCycle 0.2.0 alpha
+Project: DreamCycle 0.2.1 alpha
 Date: July 16, 2026
 Repository: https://github.com/kenjix217/dreamcycle
 License: Apache-2.0
@@ -39,13 +39,11 @@ This position is deliberately narrower than a general AI platform. DreamCycle do
 
 ## 2. Related Work and Positioning
 
-Retrieval-augmented generation established the value of external non-parametric memory for language generation. RAG-style systems condition generation on retrieved evidence so a model does not rely only on parametric knowledge [2]. DreamCycle follows the same broad principle but applies it to user and product memory rather than a static document corpus.
+Retrieval-augmented generation established the value of external non-parametric memory for language generation. RAG-style systems condition generation on retrieved evidence so a model does not rely only on parametric knowledge [1]. DreamCycle follows the same broad principle but applies it to user and product memory rather than a static document corpus.
 
-Vector search systems make that memory practical. pgvector brings exact and approximate nearest-neighbor search into PostgreSQL, including cosine, L2, inner product, HNSW, and IVFFlat support [5]. HNSW itself is a graph-based approximate nearest-neighbor method designed for efficient high-dimensional search [4]. DreamCycle uses PostgreSQL as the durable substrate because memory rows, review state, provenance, deletion, identity scope, and vectors belong in one transactional system rather than in a detached index alone.
+Vector search systems make that memory practical. pgvector brings exact and approximate nearest-neighbor search into PostgreSQL, including cosine, L2, inner product, HNSW, and IVFFlat support [4]. HNSW itself is a graph-based approximate nearest-neighbor method designed for efficient high-dimensional search [3]. DreamCycle uses PostgreSQL as the durable substrate because memory rows, review state, provenance, deletion, identity scope, and vectors belong in one transactional system rather than in a detached index alone.
 
-Parameter-efficient fine-tuning makes local adaptation feasible. LoRA freezes base-model weights and trains low-rank matrices, reducing trainable parameters and memory pressure compared with full fine-tuning [3]. Hugging Face PEFT operationalizes this family of methods for practical model adaptation [6]. DreamCycle's built-in training path is optional and uses Transformers plus PEFT to produce local LoRA adapters.
-
-The Holographic Memory System technical report is a useful comparison point for report structure and memory-system framing [1]. HMS focuses on answer-time evidence construction for long-horizon memory QA. DreamCycle focuses on a different product problem: turning local-model interactions into scoped memory, reviewed datasets, and guarded adapter promotion.
+Parameter-efficient fine-tuning makes local adaptation feasible. LoRA freezes base-model weights and trains low-rank matrices, reducing trainable parameters and memory pressure compared with full fine-tuning [2]. Hugging Face PEFT operationalizes this family of methods for practical model adaptation [5]. DreamCycle's built-in training path is optional and uses Transformers plus PEFT to produce local LoRA adapters.
 
 DreamCycle is therefore best understood as an engineering thesis rather than a benchmark claim. It does not currently claim state-of-the-art memory QA accuracy. Its value proposition is a concrete, importable, auditable learning loop that vendors can wire into real local-model products.
 
@@ -201,7 +199,7 @@ As of this report generation:
 | PostgreSQL integration tests | Skipped unless `DREAMCYCLE_TEST_DSN` is set |
 | Ruff lint | Passed |
 | Ruff format check | Passed |
-| Package version | 0.2.0 |
+| Package version | 0.2.1 |
 | License metadata | Apache-2.0 with LICENSE and NOTICE |
 
 The skipped tests are gated by an external PostgreSQL DSN. Earlier implementation review also validated the package with a disposable PostgreSQL + pgvector database, wheel/sdist checks, clean install import tests, and coupling scans. The current PDF generation did not rerun a live PostgreSQL integration database because no `DREAMCYCLE_TEST_DSN` was configured.
@@ -242,7 +240,7 @@ Apache-2.0 is the selected project license because DreamCycle is intended to be 
 The current implementation has clear limits:
 
 - Chat compatibility is limited to `POST /v1/chat/completions`.
-- The SDK is synchronous in 0.2.0.
+- The SDK is synchronous in 0.2.1.
 - Cycle state is in process and non-durable.
 - Multi-sidecar distributed job coordination is not implemented.
 - Local model servers may differ in undocumented compatibility behavior.
@@ -275,16 +273,14 @@ The project is intentionally small enough to be imported by vendors and explicit
 
 ## References
 
-[1] ShadowWeave Team. Holographic Memory System Technical Report. 2026. https://github.com/Shadow-Weave/HMS/blob/main/docs/report/Holographic%20Memory%20System%20Technical%20Report.pdf
+[1] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Kuttler, Mike Lewis, Wen-tau Yih, Tim Rocktaschel, Sebastian Riedel, and Douwe Kiela. Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks. arXiv:2005.11401, 2020. https://arxiv.org/abs/2005.11401
 
-[2] Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Kuttler, Mike Lewis, Wen-tau Yih, Tim Rocktaschel, Sebastian Riedel, and Douwe Kiela. Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks. arXiv:2005.11401, 2020. https://arxiv.org/abs/2005.11401
+[2] Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. LoRA: Low-Rank Adaptation of Large Language Models. arXiv:2106.09685, 2021. https://arxiv.org/abs/2106.09685
 
-[3] Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. LoRA: Low-Rank Adaptation of Large Language Models. arXiv:2106.09685, 2021. https://arxiv.org/abs/2106.09685
+[3] Yu. A. Malkov and D. A. Yashunin. Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs. arXiv:1603.09320, 2016. https://arxiv.org/abs/1603.09320
 
-[4] Yu. A. Malkov and D. A. Yashunin. Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs. arXiv:1603.09320, 2016. https://arxiv.org/abs/1603.09320
+[4] pgvector project. Open-source vector similarity search for Postgres. https://github.com/pgvector/pgvector
 
-[5] pgvector project. Open-source vector similarity search for Postgres. https://github.com/pgvector/pgvector
+[5] Hugging Face. PEFT and LoRA documentation. https://huggingface.co/docs/peft/index and https://huggingface.co/docs/peft/package_reference/lora
 
-[6] Hugging Face. PEFT and LoRA documentation. https://huggingface.co/docs/peft/index and https://huggingface.co/docs/peft/package_reference/lora
-
-[7] DreamCycle project documentation and source tree. README.md, ARCHITECTURE.md, docs/VENDOR_SDK.md, and src/dreamcycle/*. https://github.com/kenjix217/dreamcycle
+[6] DreamCycle project documentation and source tree. README.md, ARCHITECTURE.md, docs/VENDOR_SDK.md, and src/dreamcycle/*. https://github.com/kenjix217/dreamcycle

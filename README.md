@@ -23,7 +23,7 @@ DreamCycle was created by **Kenny Jin** for builders who want local AI to become
 more useful over time without turning production into an uncontrolled training
 experiment.
 
-> **DreamCycle is an early `0.2.0` alpha.** If memory-native, locally
+> **DreamCycle is an early `0.2.1` alpha.** If memory-native, locally
 > controlled AI is useful to you, try the five-minute demo and open an issue
 > with the first rough edge you hit. That feedback will shape the next release.
 

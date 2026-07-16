@@ -2,6 +2,11 @@
 
 All notable changes to DreamCycle are documented here.
 
+## 0.2.1 - 2026-07-16
+
+- Removed an unrelated layout-reference citation from the thesis report.
+- Regenerated the thesis PDF with only DreamCycle-relevant technical references.
+
 ## 0.2.0 - 2026-07-16
 
 - Added the authenticated vendor SDK and standalone memory sidecar.
