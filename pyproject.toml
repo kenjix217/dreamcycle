@@ -1,0 +1,101 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dreamcycle"
+version = "0.2.0"
+description = "A guarded local-model learning cycle with PostgreSQL/pgvector L2 and L3 memory"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [
+  {name = "Kenny Jin", email = "kenjix217@gmail.com"},
+]
+keywords = ["llm", "lora", "pgvector", "memory", "postgresql", "local-ai"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "pgvector>=0.3,<1",
+  "psycopg[binary]>=3.2,<4",
+]
+
+[project.optional-dependencies]
+sdk = [
+  "httpx>=0.28,<1",
+]
+server = [
+  "fastapi>=0.115,<1",
+  "httpx>=0.28,<1",
+  "uvicorn>=0.34,<1",
+]
+embeddings = [
+  "sentence-transformers>=3.3,<6",
+]
+training = [
+  "accelerate>=1.2,<2",
+  "peft>=0.14,<1",
+  "torch>=2.2",
+  "transformers>=4.48,<5",
+]
+dev = [
+  "build>=1.2,<2",
+  "fastapi>=0.115,<1",
+  "httpx>=0.28,<1",
+  "pytest>=8,<10",
+  "pytest-asyncio>=0.24,<2",
+  "ruff>=0.9,<1",
+  "twine>=6,<7",
+  "uvicorn>=0.34,<1",
+]
+
+[project.scripts]
+dreamcycle-server = "dreamcycle.server.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/kenjix217/dreamcycle"
+Repository = "https://github.com/kenjix217/dreamcycle"
+Issues = "https://github.com/kenjix217/dreamcycle/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dreamcycle"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/tests",
+  "/examples",
+  "/scripts",
+  "/docs",
+  "/ARCHITECTURE.md",
+  "/README.md",
+  "/LICENSE",
+  "/NOTICE",
+  "/CHANGELOG.md",
+  "/AUTHORS.md",
+  "/CONTRIBUTING.md",
+  "/SECURITY.md",
+  "/THIRD_PARTY.md",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
