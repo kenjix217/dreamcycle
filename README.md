@@ -23,7 +23,7 @@ DreamCycle was created by **Kenny Jin** for builders who want local AI to become
 more useful over time without turning production into an uncontrolled training
 experiment.
 
-> **DreamCycle is an early `0.2.1` alpha.** If memory-native, locally
+> **DreamCycle is an early `0.2.2` alpha.** If memory-native, locally
 > controlled AI is useful to you, try the five-minute demo and open an issue
 > with the first rough edge you hit. That feedback will shape the next release.
 
@@ -268,9 +268,6 @@ requires one.
 This drop-in path applies to configurable Chat Completions clients. DreamCycle
 does not claim compatibility with the full OpenAI API or the Responses API.
 
-See [`docs/VENDOR_SDK.md`](docs/VENDOR_SDK.md) for every route, environment
-variable, streaming rule, identity option, and deployment boundary.
-
 ## Use DreamCycle Directly in Python
 
 ```python
@@ -414,9 +411,6 @@ next community contributions are:
 - durable distributed cycle jobs;
 - more embedding and training backends;
 - real-world compatibility reports.
-
-Read the reviewed implementation baseline in
-[`docs/VENDOR_SDK_IMPLEMENTATION_REVIEW.md`](docs/VENDOR_SDK_IMPLEMENTATION_REVIEW.md).
 
 ## Development
 

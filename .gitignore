@@ -9,5 +9,6 @@ htmlcov/
 build/
 dist/
 dreamcycle-data/
+docs/
 *.log
 .env

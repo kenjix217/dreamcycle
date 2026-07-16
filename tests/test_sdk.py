@@ -37,7 +37,7 @@ def test_sdk_exposes_the_complete_vendor_contract():
         seen.append((request.method, request.url.path, request.headers.get("authorization")))
         path = request.url.path
         if path == "/healthz":
-            return httpx.Response(200, json={"status": "ok", "version": "0.2.1", "api": "v1"})
+            return httpx.Response(200, json={"status": "ok", "version": "0.2.2", "api": "v1"})
         if path == "/v1/memory/records":
             return httpx.Response(200, json=memory_value())
         if path == "/v1/memory/turns":

@@ -2,6 +2,12 @@
 
 All notable changes to DreamCycle are documented here.
 
+## 0.2.2 - 2026-07-16
+
+- Removed the internal `docs/` folder from tracked public source.
+- Excluded `docs/` from future source distributions.
+- Removed public README links into the internal docs folder.
+
 ## 0.2.1 - 2026-07-16
 
 - Removed an unrelated layout-reference citation from the thesis report.

@@ -13,7 +13,7 @@ def test_apache_license_notice_and_package_metadata_are_consistent():
     assert "Apache License" in license_text
     assert "Version 2.0, January 2004" in license_text
     assert "Copyright 2026 Kenny Jin" in notice
-    assert 'version = "0.2.1"' in pyproject
+    assert 'version = "0.2.2"' in pyproject
     assert 'license = "Apache-2.0"' in pyproject
     assert 'license-files = ["LICENSE", "NOTICE"]' in pyproject
     assert '{name = "Kenny Jin", email = "kenjix217@gmail.com"}' in pyproject
