@@ -23,9 +23,9 @@ DreamCycle was created by **Kenny Jin** for builders who want local AI to become
 more useful over time without turning production into an uncontrolled training
 experiment.
 
-> **DreamCycle is an early `0.2.0` alpha.** If the idea of memory-native,
-> locally controlled AI is useful to you, star the repository. Stars help other
-> local-AI builders discover the project and help shape what gets built next.
+> **DreamCycle is an early `0.2.0` alpha.** If memory-native, locally
+> controlled AI is useful to you, try the five-minute demo and open an issue
+> with the first rough edge you hit. That feedback will shape the next release.
 
 ## Why DreamCycle Exists
 
@@ -135,32 +135,68 @@ and no cloud-model requirement. It improves cloud-model usage through memory
 and datasets, but it does not automatically call hosted fine-tuning APIs or
 mutate closed-provider weights.
 
+## What DreamCycle Is and Is Not
+
+DreamCycle is:
+
+- a PostgreSQL/pgvector memory layer for local AI systems;
+- a review-gated dataset builder for model improvement;
+- a Python SDK, sidecar API, and OpenAI-compatible proxy add-on;
+- a local adapter training and promotion loop for teams that want one.
+
+DreamCycle is not:
+
+- a replacement for Ollama, LM Studio, llama.cpp, or a model server;
+- a hosted AI service;
+- a LangChain-style agent framework;
+- an automatic cloud fine-tuning client;
+- a promise that every remembered conversation should become training data.
+
 ## Quick Start
 
+### Five-minute memory demo
+
+This path does not need a downloaded embedding model or a local LLM. It starts
+PostgreSQL with pgvector, records one turn, recalls it, reviews it for
+training, promotes an L3 knowledge node, and prints the resulting training
+candidate.
+
+```bash
+git clone https://github.com/kenjix217/dreamcycle.git
+cd dreamcycle
+
+docker compose run --rm quickstart
+```
+
+The demo compose file keeps PostgreSQL inside Docker's private network, so it
+does not collide with an existing local Postgres server on `5432`.
+
 ### Install the mode you need
+
+DreamCycle is not on PyPI yet. Install directly from GitHub for now.
 
 Core memory and orchestration:
 
 ```bash
-pip install dreamcycle
+pip install 'dreamcycle @ git+https://github.com/kenjix217/dreamcycle.git'
 ```
 
 Python vendor SDK:
 
 ```bash
-pip install 'dreamcycle[sdk]'
+pip install 'dreamcycle[sdk] @ git+https://github.com/kenjix217/dreamcycle.git'
 ```
 
 Sidecar with local embeddings:
 
 ```bash
-pip install 'dreamcycle[server,embeddings]'
+pip install 'dreamcycle[server,embeddings] @ git+https://github.com/kenjix217/dreamcycle.git'
 ```
 
 Sidecar with local LoRA training:
 
 ```bash
-pip install 'dreamcycle[server,embeddings,training]'
+pip install 'dreamcycle[server,embeddings,training] @ git+https://github.com/kenjix217/dreamcycle.git'
 ```
 
 ### Start the sidecar

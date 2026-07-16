@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: dreamcycle
+      POSTGRES_PASSWORD: dreamcycle
+      POSTGRES_DB: dreamcycle
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dreamcycle -d dreamcycle"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - dreamcycle-postgres-data:/var/lib/postgresql/data
+
+  quickstart:
+    image: python:3.12-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      DREAMCYCLE_POSTGRES_DSN: postgresql://dreamcycle:dreamcycle@postgres:5432/dreamcycle
+      DREAMCYCLE_NAMESPACE: quickstart
+      DREAMCYCLE_USER_ID: hn-demo
+      PYTHONDONTWRITEBYTECODE: "1"
+      PIP_ROOT_USER_ACTION: ignore
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -lc "python -m pip install -e .
+      && python examples/five_minute_memory.py"
+
+volumes:
+  dreamcycle-postgres-data:
