@@ -2,13 +2,15 @@
 
 All notable changes to DreamCycle are documented here.
 
-## 0.2.0 - Unreleased
+## 0.2.0 - 2026-07-16
 
 - Added the authenticated vendor SDK and standalone memory sidecar.
 - Added observe and retrieve modes for an OpenAI-compatible Chat Completions proxy.
 - Added asynchronous dream-cycle jobs and adapter status/rollback endpoints.
 - Relicensed the unreleased project from MIT to Apache-2.0 and added `NOTICE`.
 - Added a product-focused README and GitHub-rendered architecture guide.
+- Added a Docker Compose five-minute memory quickstart.
+- Added PyPI trusted publishing through GitHub Actions.
 - Standardized public attribution to Kenny Jin.
 
 ## 0.1.0 - 2026-07-16

@@ -173,30 +173,28 @@ does not collide with an existing local Postgres server on `5432`.
 
 ### Install the mode you need
 
-DreamCycle is not on PyPI yet. Install directly from GitHub for now.
-
 Core memory and orchestration:
 
 ```bash
-pip install 'dreamcycle @ git+https://github.com/kenjix217/dreamcycle.git'
+pip install dreamcycle
 ```
 
 Python vendor SDK:
 
 ```bash
-pip install 'dreamcycle[sdk] @ git+https://github.com/kenjix217/dreamcycle.git'
+pip install 'dreamcycle[sdk]'
 ```
 
 Sidecar with local embeddings:
 
 ```bash
-pip install 'dreamcycle[server,embeddings] @ git+https://github.com/kenjix217/dreamcycle.git'
+pip install 'dreamcycle[server,embeddings]'
 ```
 
 Sidecar with local LoRA training:
 
 ```bash
-pip install 'dreamcycle[server,embeddings,training] @ git+https://github.com/kenjix217/dreamcycle.git'
+pip install 'dreamcycle[server,embeddings,training]'
 ```
 
 ### Start the sidecar
