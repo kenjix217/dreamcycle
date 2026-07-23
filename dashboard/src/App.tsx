@@ -32,6 +32,9 @@ import {
   type CycleJob,
   type DashboardSettings,
   type HealthState,
+  type KnowledgeItem,
+  type KnowledgeSearchPayload,
+  type KnowledgeStats,
   type MemoryItem,
   type RecallPayload,
   type RecordTurnPayload,
@@ -55,6 +58,7 @@ const PIPELINE_STEPS = [
   'Turn stored',
   'Memory recalled',
   'Human reviewed',
+  'L3 graph promoted',
   'Dataset forged',
   'LoRA evaluated',
   'Promoted or rolled back',
@@ -84,6 +88,20 @@ const DEFAULT_RECALL: RecallPayload = {
   metric: null,
 };
 
+const DEFAULT_KNOWLEDGE_STATS: KnowledgeStats = {
+  nodes: 0,
+  edges: 0,
+  provenance_links: 0,
+  node_types: {},
+};
+
+const DEFAULT_KNOWLEDGE_SEARCH: KnowledgeSearchPayload = {
+  query: '',
+  limit: 6,
+  node_type: '',
+  metric: null,
+};
+
 export function App() {
   const [settings, setSettings] = useState<DashboardSettings>(() => loadSettings());
   const api = useMemo(() => new DreamCycleApi(settings), [settings]);
@@ -92,8 +110,12 @@ export function App() {
   const [adapter, setAdapter] = useState<AdapterState | null>(null);
   const [job, setJob] = useState<CycleJob | null>(null);
   const [memories, setMemories] = useState<MemoryItem[]>([]);
+  const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
+  const [knowledgeStats, setKnowledgeStats] = useState<KnowledgeStats>(DEFAULT_KNOWLEDGE_STATS);
   const [turn, setTurn] = useState<RecordTurnPayload>(DEFAULT_TURN);
   const [recall, setRecall] = useState<RecallPayload>(DEFAULT_RECALL);
+  const [knowledgeSearch, setKnowledgeSearch] =
+    useState<KnowledgeSearchPayload>(DEFAULT_KNOWLEDGE_SEARCH);
   const [events, setEvents] = useState<EventEntry[]>([]);
   const [notice, setNotice] = useState<{ tone: EventTone; text: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -128,8 +150,12 @@ export function App() {
       setHealth(nextHealth);
       setConnection('online');
       if (settings.apiKey.trim()) {
-        const nextAdapter = await api.activeAdapter();
+        const [nextAdapter, nextKnowledgeStats] = await Promise.all([
+          api.activeAdapter(),
+          api.knowledgeStats(),
+        ]);
         setAdapter(nextAdapter);
+        setKnowledgeStats(nextKnowledgeStats);
       }
       pushEvent('Sidecar refresh', nextHealth.version || 'DreamCycle sidecar reachable', 'success');
     } catch (error) {
@@ -206,6 +232,56 @@ export function App() {
     } catch (error) {
       showNotice('danger', messageFor(error));
       pushEvent('Recall failed', messageFor(error), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleRecallKnowledge = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy('l3-search');
+    try {
+      const result = await api.recallKnowledge(normalizeKnowledgeSearch(knowledgeSearch));
+      setKnowledge(result.nodes);
+      pushEvent('L3 recalled', `${result.nodes.length} graph nodes returned`, 'success');
+      showNotice('success', `${result.nodes.length} L3 graph nodes recalled`);
+    } catch (error) {
+      showNotice('danger', messageFor(error));
+      pushEvent('L3 recall failed', messageFor(error), 'danger');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handlePromoteMemory = async (memory: MemoryItem) => {
+    if (!memory.success || !memory.reviewed || !memory.approved_for_training) {
+      showNotice('warning', 'Approve a successful L2 memory before promoting it to L3');
+      return;
+    }
+    setBusy(`promote-${memory.id}`);
+    try {
+      const node = await api.promoteKnowledge({
+        memory_ids: [memory.id],
+        node_type: knowledgeTypeFor(memory),
+        key: knowledgeKeyFor(memory),
+        content: memory.content,
+        confidence: confidenceFor(memory),
+        metadata: {
+          source_memory_id: memory.id,
+          source: memory.source,
+          role: memory.role,
+          conversation_id: memory.conversation_id,
+          trace_id: memory.trace_id,
+        },
+      });
+      setKnowledge((prev) => [node, ...prev.filter((item) => item.id !== node.id)].slice(0, 12));
+      const stats = await api.knowledgeStats().catch(() => null);
+      if (stats) setKnowledgeStats(stats);
+      pushEvent('L3 promoted', node.key, 'success');
+      showNotice('success', 'Approved L2 memory promoted to L3 graph memory');
+    } catch (error) {
+      showNotice('danger', messageFor(error));
+      pushEvent('L3 promotion failed', messageFor(error), 'danger');
     } finally {
       setBusy(null);
     }
@@ -337,8 +413,8 @@ export function App() {
         <MetricCard
           icon={Database}
           label="Memory"
-          value={`${memories.length}`}
-          unit={`${reviewedCount} reviewed / ${approvedCount} approved`}
+          value={`${memories.length} L2`}
+          unit={`${reviewedCount} reviewed / ${approvedCount} approved / ${knowledgeStats.nodes} L3`}
           tone={approvedCount > 0 ? 'success' : 'neutral'}
         />
       </section>
@@ -404,8 +480,14 @@ export function App() {
         </aside>
 
         <section className="main-column">
-          <Panel title="Live Learning Graph" subtitle="Memory, review, and adapter signals" icon={BrainCircuit}>
-            <MemoryGraph memories={memories} events={events} adapter={adapter} job={job} />
+          <Panel title="Live Learning Graph" subtitle="L2 review, L3 graph, and adapter signals" icon={BrainCircuit}>
+            <MemoryGraph
+              memories={memories}
+              events={events}
+              adapter={adapter}
+              job={job}
+              knowledgeStats={knowledgeStats}
+            />
           </Panel>
 
           <div className="split-grid">
@@ -461,8 +543,8 @@ export function App() {
             </Panel>
 
             <Panel title="Recall" subtitle="Search scoped L2 memory" icon={Search}>
-              <form className="stack" onSubmit={handleRecall}>
-                <label className="field">
+              <form className="stack recall-form" onSubmit={handleRecall}>
+                <label className="field field-fill">
                   <span>Query</span>
                   <textarea
                     value={recall.query}
@@ -520,13 +602,14 @@ export function App() {
           </div>
 
           <div className="split-grid reverse">
-            <Panel title="Memory Review Queue" subtitle="Approve records for training" icon={CheckCircle2}>
+            <Panel title="Memory Review Queue" subtitle="Approve records for L3 and training" icon={CheckCircle2}>
               <MemoryList
                 memories={memories}
                 busy={busy}
                 onApprove={(memory) => handleReview(memory, true)}
                 onReject={(memory) => handleReview(memory, false)}
                 onDelete={handleDelete}
+                onPromote={handlePromoteMemory}
               />
             </Panel>
 
@@ -534,6 +617,17 @@ export function App() {
               <CyclePanel job={job} phases={phases} events={events} />
             </Panel>
           </div>
+
+          <Panel title="L3 Graph Memory" subtitle="Promoted durable knowledge with L2 provenance" icon={Target}>
+            <KnowledgePanel
+              stats={knowledgeStats}
+              nodes={knowledge}
+              search={knowledgeSearch}
+              busy={busy}
+              onSearchChange={setKnowledgeSearch}
+              onSearch={handleRecallKnowledge}
+            />
+          </Panel>
         </section>
       </section>
 
@@ -649,13 +743,15 @@ function MemoryGraph({
   events,
   adapter,
   job,
+  knowledgeStats,
 }: {
   memories: MemoryItem[];
   events: EventEntry[];
   adapter: AdapterState | null;
   job: CycleJob | null;
+  knowledgeStats: KnowledgeStats;
 }) {
-  const nodes = graphNodes(memories, adapter, job);
+  const nodes = graphNodes(memories, adapter, job, knowledgeStats);
   const activeEvents = events.slice(0, 5);
   return (
     <div className="graph-shell">
@@ -691,6 +787,14 @@ function MemoryGraph({
           <strong>{memories.filter((item) => item.reviewed).length}</strong>
         </div>
         <div className="graph-stat">
+          <span>L3 Nodes</span>
+          <strong>{knowledgeStats.nodes}</strong>
+        </div>
+        <div className="graph-stat">
+          <span>Graph Edges</span>
+          <strong>{knowledgeStats.edges}</strong>
+        </div>
+        <div className="graph-stat">
           <span>Adapter</span>
           <strong>{adapter?.active_path ? 'active' : 'idle'}</strong>
         </div>
@@ -717,15 +821,17 @@ function MemoryList({
   onApprove,
   onReject,
   onDelete,
+  onPromote,
 }: {
   memories: MemoryItem[];
   busy: string | null;
   onApprove: (memory: MemoryItem) => void;
   onReject: (memory: MemoryItem) => void;
   onDelete: (memory: MemoryItem) => void;
+  onPromote: (memory: MemoryItem) => void;
 }) {
   if (memories.length === 0) {
-    return <div className="empty-state">No recalled or recorded memories</div>;
+    return <div className="empty-state">No recalled or recorded L2 memories</div>;
   }
   return (
     <div className="memory-list">
@@ -744,12 +850,117 @@ function MemoryList({
             <button className="icon-btn" onClick={() => onReject(memory)} disabled={busy === memory.id}>
               <XCircle size={15} />
             </button>
+            <button
+              className="icon-btn"
+              onClick={() => onPromote(memory)}
+              disabled={
+                busy === `promote-${memory.id}` ||
+                !memory.success ||
+                !memory.reviewed ||
+                !memory.approved_for_training
+              }
+              aria-label="Promote approved L2 memory to L3"
+              title="Promote approved L2 memory to L3"
+            >
+              {busy === `promote-${memory.id}` ? (
+                <Loader2 className="spin" size={15} />
+              ) : (
+                <Sparkles size={15} />
+              )}
+            </button>
             <button className="icon-btn danger" onClick={() => onDelete(memory)} disabled={busy === memory.id}>
               <Trash2 size={15} />
             </button>
           </div>
         </article>
       ))}
+    </div>
+  );
+}
+
+function KnowledgePanel({
+  stats,
+  nodes,
+  search,
+  busy,
+  onSearchChange,
+  onSearch,
+}: {
+  stats: KnowledgeStats;
+  nodes: KnowledgeItem[];
+  search: KnowledgeSearchPayload;
+  busy: string | null;
+  onSearchChange: (value: KnowledgeSearchPayload) => void;
+  onSearch: (event: FormEvent) => void;
+}) {
+  return (
+    <div className="knowledge-panel">
+      <div className="knowledge-summary">
+        <div>
+          <span>Nodes</span>
+          <strong>{stats.nodes}</strong>
+        </div>
+        <div>
+          <span>Edges</span>
+          <strong>{stats.edges}</strong>
+        </div>
+        <div>
+          <span>Provenance</span>
+          <strong>{stats.provenance_links}</strong>
+        </div>
+      </div>
+
+      <form className="knowledge-search" onSubmit={onSearch}>
+        <label className="field">
+          <span>L3 query</span>
+          <input
+            value={search.query}
+            onChange={(event) => onSearchChange({ ...search, query: event.target.value })}
+          />
+        </label>
+        <label className="field">
+          <span>Type</span>
+          <input
+            value={search.node_type || ''}
+            onChange={(event) =>
+              onSearchChange({ ...search, node_type: event.target.value || null })
+            }
+          />
+        </label>
+        <label className="field">
+          <span>Limit</span>
+          <input
+            type="number"
+            min="1"
+            max="50"
+            value={search.limit}
+            onChange={(event) => onSearchChange({ ...search, limit: Number(event.target.value) })}
+          />
+        </label>
+        <button className="btn btn-primary" type="submit" disabled={busy === 'l3-search'}>
+          {busy === 'l3-search' ? <Loader2 className="spin" size={15} /> : <Search size={15} />}
+          Search L3
+        </button>
+      </form>
+
+      <div className="knowledge-list">
+        {nodes.length === 0 ? (
+          <div className="empty-state compact">
+            Promote approved L2 records to populate durable graph memory
+          </div>
+        ) : (
+          nodes.map((node) => (
+            <article key={node.id} className="knowledge-row">
+              <div className="knowledge-row-head">
+                <span>{node.node_type}</span>
+                <strong>{Math.round(node.confidence * 100)}%</strong>
+              </div>
+              <h3>{node.key}</h3>
+              <p>{node.content}</p>
+            </article>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -840,10 +1051,35 @@ function normalizeRecall(value: RecallPayload): RecallPayload {
   };
 }
 
+function normalizeKnowledgeSearch(value: KnowledgeSearchPayload): KnowledgeSearchPayload {
+  return {
+    ...value,
+    query: value.query.trim(),
+    node_type: value.node_type?.trim() || null,
+  };
+}
+
 function messageFor(error: unknown): string {
   if (error instanceof DreamCycleApiError) return error.message;
   if (error instanceof Error) return error.message;
   return 'DreamCycle request failed';
+}
+
+function knowledgeTypeFor(memory: MemoryItem): string {
+  return memory.role === 'assistant' ? 'validated_response' : 'validated_memory';
+}
+
+function knowledgeKeyFor(memory: MemoryItem): string {
+  const basis = memory.content
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+  return `${memory.role}-${basis || memory.id.slice(0, 12)}`;
+}
+
+function confidenceFor(memory: MemoryItem): number {
+  return Math.max(0.1, Math.min(1, memory.importance || 0.8));
 }
 
 function compactPath(value: string): string {
@@ -887,14 +1123,27 @@ function phaseRows(job: CycleJob | null): Array<{ name: string; status: string; 
     .filter((phase): phase is { name: string; status: string; detail: string } => phase !== null);
 }
 
-function graphNodes(memories: MemoryItem[], adapter: AdapterState | null, job: CycleJob | null) {
+function graphNodes(
+  memories: MemoryItem[],
+  adapter: AdapterState | null,
+  job: CycleJob | null,
+  knowledgeStats: KnowledgeStats,
+) {
   const base = [
     { id: 'core', label: 'DreamCycle', x: 490, y: 180, r: 34, tone: 'core' },
-    { id: 'l2', label: 'L2 Memory', x: 245, y: 105, r: 24, tone: memories.length ? 'success' : 'neutral' },
+    { id: 'l2', label: 'L2 Memory', x: 220, y: 105, r: 24, tone: memories.length ? 'success' : 'neutral' },
+    {
+      id: 'l3',
+      label: 'L3 Graph',
+      x: 490,
+      y: 70,
+      r: 25,
+      tone: knowledgeStats.nodes ? 'success' : 'neutral',
+    },
     {
       id: 'review',
       label: 'Review Gate',
-      x: 300,
+      x: 275,
       y: 282,
       r: 23,
       tone: memories.some((item) => item.reviewed) ? 'success' : 'neutral',
@@ -902,15 +1151,15 @@ function graphNodes(memories: MemoryItem[], adapter: AdapterState | null, job: C
     {
       id: 'cycle',
       label: 'Cycle Job',
-      x: 680,
-      y: 95,
+      x: 710,
+      y: 105,
       r: 25,
       tone: job?.status === 'failed' ? 'danger' : job ? 'warning' : 'neutral',
     },
     {
       id: 'adapter',
       label: 'Adapter',
-      x: 735,
+      x: 760,
       y: 274,
       r: 25,
       tone: adapter?.active_path ? 'success' : 'neutral',

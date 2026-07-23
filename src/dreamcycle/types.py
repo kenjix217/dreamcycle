@@ -110,6 +110,14 @@ class KnowledgeEdge:
 
 
 @dataclass(frozen=True)
+class KnowledgeStats:
+    nodes: int
+    edges: int
+    provenance_links: int
+    node_types: Mapping[str, int] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class KnowledgeClaim:
     node_type: str
     key: str

@@ -28,6 +28,7 @@ from dreamcycle.types import (
     DreamCycleReport,
     KnowledgeEdge,
     KnowledgeNode,
+    KnowledgeStats,
     MemoryRecord,
     TrainingCandidate,
     utc_now,
@@ -576,7 +577,7 @@ class PostgresMemory:
         with self._connect() as connection:
             rows = connection.execute(
                 f"""
-                SELECT id FROM {self._l2}
+                SELECT id, success, reviewed, approved_for_training FROM {self._l2}
                 WHERE namespace = %s AND user_id = %s AND id = ANY(%s)
                 """,
                 (self.config.namespace, self.config.user_id, source_ids),
@@ -586,6 +587,16 @@ class PostgresMemory:
             if missing:
                 raise ConfigurationError(
                     "source memories are missing from this namespace: " + ", ".join(missing)
+                )
+            low_quality = [
+                str(row["id"])
+                for row in rows
+                if not row["success"] or not row["reviewed"] or not row["approved_for_training"]
+            ]
+            if low_quality:
+                raise ConfigurationError(
+                    "L3 promotion requires reviewed, approved, successful L2 sources: "
+                    + ", ".join(low_quality)
                 )
             row = self._upsert_knowledge(
                 connection,
@@ -606,6 +617,44 @@ class PostgresMemory:
                     (self.config.namespace, self.config.user_id, row["id"], memory_id),
                 )
         return self._knowledge_node(row)
+
+    def knowledge_stats(self) -> KnowledgeStats:
+        with self._connect() as connection:
+            counts = connection.execute(
+                f"""
+                SELECT
+                    (SELECT count(*) FROM {self._nodes}
+                     WHERE namespace = %s AND user_id = %s) AS nodes,
+                    (SELECT count(*) FROM {self._edges}
+                     WHERE namespace = %s AND user_id = %s) AS edges,
+                    (SELECT count(*) FROM {self._provenance}
+                     WHERE namespace = %s AND user_id = %s) AS provenance_links
+                """,
+                (
+                    self.config.namespace,
+                    self.config.user_id,
+                    self.config.namespace,
+                    self.config.user_id,
+                    self.config.namespace,
+                    self.config.user_id,
+                ),
+            ).fetchone()
+            type_rows = connection.execute(
+                f"""
+                SELECT node_type, count(*) AS count
+                FROM {self._nodes}
+                WHERE namespace = %s AND user_id = %s
+                GROUP BY node_type
+                ORDER BY node_type
+                """,
+                (self.config.namespace, self.config.user_id),
+            ).fetchall()
+        return KnowledgeStats(
+            nodes=int(counts["nodes"]),
+            edges=int(counts["edges"]),
+            provenance_links=int(counts["provenance_links"]),
+            node_types={row["node_type"]: int(row["count"]) for row in type_rows},
+        )
 
     def promote_with_extractor(
         self, memory_ids: Sequence[str], extractor: KnowledgeExtractor

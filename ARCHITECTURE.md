@@ -190,7 +190,8 @@ flowchart LR
     Turn["Completed interaction"] --> L2["L2 episodic memory"]
     L2 --> Recall["Vector recall"]
     L2 --> Review["Human review decision"]
-    L2 -->|"provenance"| L3["L3 durable knowledge"]
+    Review -->|"approved + successful"| L3["L3 durable knowledge"]
+    L2 -->|"provenance"| L3
     Review -->|"approved"| Dataset["Training candidate"]
     Review -->|"rejected"| Stop["Excluded from training"]
 ```
@@ -220,8 +221,10 @@ L3 stores what the system has intentionally distilled:
 - confidence and metadata;
 - provenance links back to L2 memories.
 
-L3 promotion rejects source IDs outside the current namespace and user scope.
-This keeps a durable claim connected to the evidence that produced it.
+L3 promotion rejects source IDs outside the current namespace and user scope,
+and rejects raw L2 rows that have not been reviewed, approved, and marked
+successful. This keeps durable claims connected to high-quality evidence rather
+than every captured conversation.
 
 ## Identity Is a Server Decision
 

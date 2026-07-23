@@ -71,7 +71,7 @@ def main() -> None:
     reviewed = memory.mark_reviewed(assistant.id, approved_for_training=True)
 
     knowledge = memory.promote_to_l3(
-        [user.id, assistant.id],
+        [assistant.id],
         node_type="engineering-practice",
         key="bounded-retries",
         content="Retry flaky local model calls with exponential backoff and a maximum attempt cap.",

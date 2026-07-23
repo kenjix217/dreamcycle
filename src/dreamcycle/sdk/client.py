@@ -15,7 +15,14 @@ except ImportError as exc:  # pragma: no cover - exercised by clean core-only in
     ) from exc
 
 from dreamcycle.errors import ConfigurationError
-from dreamcycle.sdk.models import AdapterState, CycleJob, MemoryItem
+from dreamcycle.sdk.models import (
+    AdapterState,
+    CycleJob,
+    KnowledgeItem,
+    KnowledgeNeighbor,
+    KnowledgeStats,
+    MemoryItem,
+)
 
 
 class DreamCycleSDKError(Exception):
@@ -157,6 +164,70 @@ class DreamCycleClient:
     def delete(self, memory_id: str) -> bool:
         value = self._request("DELETE", f"/v1/memory/{memory_id}")
         return bool(value["success"])
+
+    def promote_knowledge(
+        self,
+        memory_ids: tuple[str, ...] | list[str],
+        *,
+        key: str,
+        content: str,
+        node_type: str = "validated_memory",
+        confidence: float = 0.8,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> KnowledgeItem:
+        value = self._request(
+            "POST",
+            "/v1/knowledge/promotions",
+            json={
+                "memory_ids": list(memory_ids),
+                "node_type": node_type,
+                "key": key,
+                "content": content,
+                "confidence": confidence,
+                "metadata": dict(metadata or {}),
+            },
+        )
+        return KnowledgeItem.from_dict(value)
+
+    def recall_knowledge(
+        self,
+        query: str,
+        *,
+        limit: int = 10,
+        node_type: str | None = None,
+        metric: str | None = None,
+    ) -> list[KnowledgeItem]:
+        value = self._request(
+            "POST",
+            "/v1/knowledge/search",
+            json={
+                "query": query,
+                "limit": limit,
+                "node_type": node_type,
+                "metric": metric,
+            },
+        )
+        return [KnowledgeItem.from_dict(item) for item in value["nodes"]]
+
+    def knowledge_neighbors(
+        self,
+        node_id: str,
+        *,
+        relation: str | None = None,
+        limit: int = 50,
+    ) -> list[KnowledgeNeighbor]:
+        params: dict[str, Any] = {"limit": limit}
+        if relation:
+            params["relation"] = relation
+        value = self._request(
+            "GET",
+            f"/v1/knowledge/{node_id}/neighbors",
+            params=params,
+        )
+        return [KnowledgeNeighbor.from_dict(item) for item in value["neighbors"]]
+
+    def knowledge_stats(self) -> KnowledgeStats:
+        return KnowledgeStats(**self._request("GET", "/v1/knowledge/stats"))
 
     def start_cycle(self) -> CycleJob:
         return CycleJob.from_dict(self._request("POST", "/v1/cycles"))

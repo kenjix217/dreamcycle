@@ -8,6 +8,7 @@ from dreamcycle.types import (
     KnowledgeClaim,
     KnowledgeEdge,
     KnowledgeNode,
+    KnowledgeStats,
     MemoryRecord,
 )
 
@@ -19,6 +20,7 @@ __all__ = [
     "KnowledgeEdge",
     "KnowledgeExtractor",
     "KnowledgeNode",
+    "KnowledgeStats",
     "MemoryFilters",
     "MemoryRecord",
     "PostgresMemory",

@@ -23,7 +23,7 @@ DreamCycle was created by **Kenny Jin** for builders who want local AI to become
 more useful over time without turning production into an uncontrolled training
 experiment.
 
-> **DreamCycle is an early `0.3.1` alpha.** If memory-native, locally
+> **DreamCycle is an early `0.3.2` alpha.** If memory-native, locally
 > controlled AI is useful to you, try the five-minute demo and open an issue
 > with the first rough edge you hit. That feedback will shape the next release.
 
@@ -114,6 +114,8 @@ failure boundaries are in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 - Direct PostgreSQL/pgvector L2 episodic memory.
 - Cosine, Euclidean/L2, and inner-product retrieval.
 - L3 knowledge nodes, relationships, and L2 provenance.
+- Reviewed-L2 to L3 graph-memory promotion through the SDK, sidecar API, and
+  local dashboard.
 - Immutable API-key bindings for namespace and user isolation.
 - Atomic user/assistant turn capture.
 - Explicit review, approval, rejection, and deletion controls.
@@ -258,6 +260,16 @@ with DreamCycleClient("http://127.0.0.1:8765", "sidecar-key") as client:
 
     # Captured data cannot train anything until someone makes this decision.
     client.review(assistant.id, approved_for_training=True)
+
+    node = client.promote_knowledge(
+        [assistant.id],
+        node_type="validated_response",
+        key="bounded-retry-answer",
+        content="Retries should use exponential backoff with a maximum attempt count.",
+        confidence=0.8,
+    )
+
+    l3_nodes = client.recall_knowledge("resilient retry guidance", limit=5)
 ```
 
 API keys are bound server-side to an immutable namespace and user ID. Request
@@ -333,11 +345,13 @@ starting DreamCycle.
 ## Build Durable L3 Knowledge
 
 L3 is a vector-searchable PostgreSQL knowledge graph with provenance back to
-the original L2 memories.
+the original L2 memories. Promotion is guarded: source L2 records must be
+reviewed, approved for training, and successful before they can become durable
+L3 knowledge.
 
 ```python
 practice = memory.promote_to_l3(
-    [user_memory.id, assistant_memory.id],
+    [assistant_memory.id],
     node_type="engineering-practice",
     key="bounded-retries",
     content="Retries use exponential backoff and a maximum attempt count.",
@@ -387,7 +401,10 @@ evaluator that measures their real target behavior.
 DreamCycle now ships a standalone local dashboard inspired by the original
 Nervous Dream page design. It runs beside the sidecar and gives you a compact
 control surface for memory capture, recall, review, cycle launch, adapter
-status, and confirmation-gated rollback.
+status, L3 graph promotion/search, and confirmation-gated rollback.
+
+The L3 panel follows the guarded flow: approve a successful L2 record first,
+then promote it into graph memory with provenance back to the source record.
 
 ```bash
 cd dashboard

@@ -25,6 +25,14 @@ from dreamcycle.server.jobs import (
 from dreamcycle.server.models import (
     AdapterStateResponse,
     CycleJobResponse,
+    KnowledgeEdgeItem,
+    KnowledgeItem,
+    KnowledgeNeighborItem,
+    KnowledgeNeighborsResponse,
+    KnowledgePromoteRequest,
+    KnowledgeSearchRequest,
+    KnowledgeSearchResponse,
+    KnowledgeStatsResponse,
     MemoryItem,
     MemoryRecordRequest,
     MemoryReviewRequest,
@@ -170,6 +178,66 @@ def create_app(
         if not deleted:
             raise HTTPException(status_code=404, detail="memory was not found")
         return MutationResponse(success=True)
+
+    @app.get("/v1/knowledge/stats", response_model=KnowledgeStatsResponse)
+    async def knowledge_stats(identity: Identity) -> KnowledgeStatsResponse:
+        stats = await asyncio.to_thread(service.knowledge_stats, identity)
+        return KnowledgeStatsResponse.from_stats(stats)
+
+    @app.post("/v1/knowledge/promotions", response_model=KnowledgeItem)
+    async def promote_knowledge(body: KnowledgePromoteRequest, identity: Identity) -> KnowledgeItem:
+        node = await asyncio.to_thread(
+            service.promote_knowledge,
+            identity,
+            body.memory_ids,
+            node_type=body.node_type,
+            key=body.key,
+            content=body.content,
+            confidence=body.confidence,
+            metadata=body.metadata,
+        )
+        return KnowledgeItem.from_node(node)
+
+    @app.post("/v1/knowledge/search", response_model=KnowledgeSearchResponse)
+    async def search_knowledge(
+        body: KnowledgeSearchRequest, identity: Identity
+    ) -> KnowledgeSearchResponse:
+        nodes = await asyncio.to_thread(
+            service.search_knowledge,
+            identity,
+            body.query,
+            limit=body.limit,
+            node_type=body.node_type,
+            metric=body.metric,
+        )
+        return KnowledgeSearchResponse(nodes=[KnowledgeItem.from_node(node) for node in nodes])
+
+    @app.get(
+        "/v1/knowledge/{node_id}/neighbors",
+        response_model=KnowledgeNeighborsResponse,
+    )
+    async def knowledge_neighbors(
+        node_id: str,
+        identity: Identity,
+        relation: str | None = None,
+        limit: int = 50,
+    ) -> KnowledgeNeighborsResponse:
+        neighbors = await asyncio.to_thread(
+            service.knowledge_neighbors,
+            identity,
+            node_id,
+            relation=relation,
+            limit=limit,
+        )
+        return KnowledgeNeighborsResponse(
+            neighbors=[
+                KnowledgeNeighborItem(
+                    edge=KnowledgeEdgeItem.from_edge(edge),
+                    node=KnowledgeItem.from_node(node),
+                )
+                for edge, node in neighbors
+            ]
+        )
 
     @app.post(
         "/v1/cycles",

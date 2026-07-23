@@ -2,6 +2,14 @@
 
 All notable changes to DreamCycle are documented here.
 
+## 0.3.2 - 2026-07-23
+
+- Added sidecar and SDK support for reviewed L2 to L3 graph-memory promotion,
+  L3 search, L3 neighbor lookup, and L3 stats.
+- Added dashboard visibility for L3 graph memory and approved-L2 promotion.
+- Guarded L3 promotion so raw captured L2 records must be reviewed, approved,
+  and successful before they can become durable graph knowledge.
+
 ## 0.3.1 - 2026-07-23
 
 - Added Linux and macOS GitHub Release install bundles for x86_64 and arm64.

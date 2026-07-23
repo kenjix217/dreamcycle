@@ -38,6 +38,44 @@ export interface MemoryItem {
   similarity: number | null;
 }
 
+export interface KnowledgeItem {
+  id: string;
+  namespace: string;
+  user_id: string;
+  node_type: string;
+  key: string;
+  content: string;
+  confidence: number;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  distance: number | null;
+  similarity: number | null;
+}
+
+export interface KnowledgeStats {
+  nodes: number;
+  edges: number;
+  provenance_links: number;
+  node_types: Record<string, number>;
+}
+
+export interface KnowledgePromotePayload {
+  memory_ids: string[];
+  node_type: string;
+  key: string;
+  content: string;
+  confidence: number;
+  metadata: Record<string, unknown>;
+}
+
+export interface KnowledgeSearchPayload {
+  query: string;
+  limit: number;
+  node_type?: string | null;
+  metric?: 'cosine' | 'l2' | 'inner_product' | null;
+}
+
 export interface CycleJob {
   id: string;
   status: 'queued' | 'running' | 'completed' | 'failed' | string;
@@ -115,6 +153,18 @@ export class DreamCycleApi {
 
   recall(payload: RecallPayload): Promise<{ memories: MemoryItem[] }> {
     return this.request('POST', '/v1/memory/search', { body: payload });
+  }
+
+  knowledgeStats(): Promise<KnowledgeStats> {
+    return this.request('GET', '/v1/knowledge/stats');
+  }
+
+  promoteKnowledge(payload: KnowledgePromotePayload): Promise<KnowledgeItem> {
+    return this.request('POST', '/v1/knowledge/promotions', { body: payload });
+  }
+
+  recallKnowledge(payload: KnowledgeSearchPayload): Promise<{ nodes: KnowledgeItem[] }> {
+    return this.request('POST', '/v1/knowledge/search', { body: payload });
   }
 
   review(memoryId: string, approvedForTraining: boolean): Promise<{ success: boolean }> {

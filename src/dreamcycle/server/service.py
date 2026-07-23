@@ -8,7 +8,13 @@ from typing import Any
 from dreamcycle.memory.base import MemoryFilters
 from dreamcycle.server.auth import ClientIdentity
 from dreamcycle.server.memory import MemoryResolver
-from dreamcycle.types import DistanceMetric, MemoryRecord
+from dreamcycle.types import (
+    DistanceMetric,
+    KnowledgeEdge,
+    KnowledgeNode,
+    KnowledgeStats,
+    MemoryRecord,
+)
 
 
 class DreamCycleService:
@@ -100,3 +106,56 @@ class DreamCycleService:
 
     def delete(self, identity: ClientIdentity, memory_id: str) -> bool:
         return self.memories.resolve(identity).delete(memory_id)
+
+    def promote_knowledge(
+        self,
+        identity: ClientIdentity,
+        memory_ids: tuple[str, ...],
+        *,
+        node_type: str,
+        key: str,
+        content: str,
+        confidence: float = 1.0,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> KnowledgeNode:
+        return self.memories.resolve(identity).promote_to_l3(
+            memory_ids,
+            node_type=node_type,
+            key=key,
+            content=content,
+            confidence=confidence,
+            metadata=metadata,
+        )
+
+    def search_knowledge(
+        self,
+        identity: ClientIdentity,
+        query: str,
+        *,
+        limit: int = 10,
+        node_type: str | None = None,
+        metric: DistanceMetric | None = None,
+    ) -> list[KnowledgeNode]:
+        return self.memories.resolve(identity).recall_knowledge(
+            query,
+            limit=limit,
+            node_type=node_type,
+            metric=metric,
+        )
+
+    def knowledge_neighbors(
+        self,
+        identity: ClientIdentity,
+        node_id: str,
+        *,
+        relation: str | None = None,
+        limit: int = 50,
+    ) -> list[tuple[KnowledgeEdge, KnowledgeNode]]:
+        return self.memories.resolve(identity).neighbors(
+            node_id,
+            relation=relation,
+            limit=limit,
+        )
+
+    def knowledge_stats(self, identity: ClientIdentity) -> KnowledgeStats:
+        return self.memories.resolve(identity).knowledge_stats()

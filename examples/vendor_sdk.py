@@ -22,6 +22,15 @@ def main() -> None:
             print(memory.similarity, memory.content)
 
         client.review(assistant.id, approved_for_training=True)
+        knowledge = client.promote_knowledge(
+            [assistant.id],
+            node_type="validated_response",
+            key="conversation-memory",
+            content="DreamCycle stores scoped local memories in PostgreSQL with pgvector.",
+            confidence=0.8,
+        )
+        print("l3", knowledge.node_type, knowledge.key)
+
         job = client.start_cycle()
         print("cycle", job.id, job.status)
 

@@ -1,13 +1,15 @@
+from dataclasses import replace
 from datetime import datetime, timezone
 from uuid import uuid4
 
 import httpx
 import pytest
 
+from dreamcycle.errors import ConfigurationError
 from dreamcycle.server.app import create_app
 from dreamcycle.server.auth import APIKeyAuthenticator, ClientIdentity
 from dreamcycle.server.service import DreamCycleService
-from dreamcycle.types import MemoryRecord
+from dreamcycle.types import KnowledgeNode, KnowledgeStats, MemoryRecord
 
 
 def memory_record(identity, content="remembered", role="event"):
@@ -38,6 +40,7 @@ class FakeMemory:
         self.records = []
         self.reviewed = []
         self.deleted = []
+        self.nodes = []
 
     def remember(self, content, **kwargs):
         record = memory_record(self.identity, content, kwargs.get("role", "event"))
@@ -55,11 +58,72 @@ class FakeMemory:
 
     def mark_reviewed(self, memory_id, *, approved_for_training=False):
         self.reviewed.append((memory_id, approved_for_training))
+        self.records = [
+            replace(record, reviewed=True, approved_for_training=approved_for_training)
+            if record.id == memory_id
+            else record
+            for record in self.records
+        ]
         return memory_id != "missing"
 
     def delete(self, memory_id):
         self.deleted.append(memory_id)
         return memory_id != "missing"
+
+    def promote_to_l3(
+        self,
+        memory_ids,
+        *,
+        node_type,
+        key,
+        content,
+        confidence=1.0,
+        metadata=None,
+    ):
+        sources = [record for record in self.records if record.id in set(memory_ids)]
+        if len(sources) != len(set(memory_ids)):
+            raise ConfigurationError("source memories are missing from this namespace")
+        low_quality = [
+            record.id
+            for record in sources
+            if not record.success or not record.reviewed or not record.approved_for_training
+        ]
+        if low_quality:
+            raise ConfigurationError(
+                "L3 promotion requires reviewed, approved, successful L2 sources"
+            )
+        now = datetime.now(timezone.utc)
+        node = KnowledgeNode(
+            id=str(uuid4()),
+            namespace=self.identity.namespace,
+            user_id=self.identity.user_id,
+            node_type=node_type,
+            key=key,
+            content=content,
+            confidence=confidence,
+            metadata=metadata or {},
+            created_at=now,
+            updated_at=now,
+        )
+        self.nodes.append(node)
+        return node
+
+    def recall_knowledge(self, query, **kwargs):
+        return list(self.nodes)
+
+    def neighbors(self, node_id, **kwargs):
+        return []
+
+    def knowledge_stats(self):
+        node_types = {}
+        for node in self.nodes:
+            node_types[node.node_type] = node_types.get(node.node_type, 0) + 1
+        return KnowledgeStats(
+            nodes=len(self.nodes),
+            edges=0,
+            provenance_links=len(self.nodes),
+            node_types=node_types,
+        )
 
 
 class FakeResolver:
@@ -140,6 +204,20 @@ async def test_memory_routes_are_scoped_and_mutations_are_truthful():
         assert second_results.json()["memories"] == []
 
         memory_id = turn.json()["assistant"]["id"]
+        blocked = await client.post(
+            "/v1/knowledge/promotions",
+            headers=first_headers,
+            json={
+                "memory_ids": [memory_id],
+                "node_type": "validated_memory",
+                "key": "raw-answer",
+                "content": "answer",
+                "confidence": 0.8,
+            },
+        )
+        assert blocked.status_code == 400
+        assert "reviewed, approved, successful L2" in blocked.json()["detail"]
+
         reviewed = await client.post(
             f"/v1/memory/{memory_id}/review",
             headers=first_headers,
@@ -147,6 +225,37 @@ async def test_memory_routes_are_scoped_and_mutations_are_truthful():
         )
         assert reviewed.json() == {"success": True}
         assert resolver.memories[first].reviewed == [(memory_id, True)]
+
+        promoted = await client.post(
+            "/v1/knowledge/promotions",
+            headers=first_headers,
+            json={
+                "memory_ids": [memory_id],
+                "node_type": "validated_memory",
+                "key": "answer-pattern",
+                "content": "answer",
+                "confidence": 0.8,
+            },
+        )
+        assert promoted.status_code == 200
+        assert promoted.json()["node_type"] == "validated_memory"
+
+        stats = await client.get("/v1/knowledge/stats", headers=first_headers)
+        assert stats.json()["nodes"] == 1
+        assert stats.json()["node_types"] == {"validated_memory": 1}
+
+        l3_results = await client.post(
+            "/v1/knowledge/search",
+            headers=first_headers,
+            json={"query": "answer", "limit": 5},
+        )
+        assert [node["key"] for node in l3_results.json()["nodes"]] == ["answer-pattern"]
+
+        neighbors = await client.get(
+            f"/v1/knowledge/{promoted.json()['id']}/neighbors",
+            headers=first_headers,
+        )
+        assert neighbors.json() == {"neighbors": []}
 
         assert (
             await client.delete(f"/v1/memory/{memory_id}", headers=first_headers)

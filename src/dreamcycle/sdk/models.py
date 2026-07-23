@@ -38,6 +38,69 @@ class MemoryItem:
 
 
 @dataclass(frozen=True)
+class KnowledgeItem:
+    id: str
+    namespace: str
+    user_id: str
+    node_type: str
+    key: str
+    content: str
+    confidence: float
+    metadata: Mapping[str, Any]
+    created_at: datetime
+    updated_at: datetime
+    distance: float | None = None
+    similarity: float | None = None
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> KnowledgeItem:
+        data = dict(value)
+        data["created_at"] = _parse_datetime(data["created_at"])
+        data["updated_at"] = _parse_datetime(data["updated_at"])
+        return cls(**data)
+
+
+@dataclass(frozen=True)
+class KnowledgeEdgeItem:
+    id: str
+    namespace: str
+    user_id: str
+    source_id: str
+    target_id: str
+    relation: str
+    weight: float
+    metadata: Mapping[str, Any]
+    created_at: datetime
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> KnowledgeEdgeItem:
+        data = dict(value)
+        data["created_at"] = _parse_datetime(data["created_at"])
+        return cls(**data)
+
+
+@dataclass(frozen=True)
+class KnowledgeNeighbor:
+    edge: KnowledgeEdgeItem
+    node: KnowledgeItem
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> KnowledgeNeighbor:
+        return cls(
+            edge=KnowledgeEdgeItem.from_dict(value["edge"]),
+            node=KnowledgeItem.from_dict(value["node"]),
+        )
+
+
+@dataclass(frozen=True)
+class KnowledgeStats:
+    nodes: int
+    edges: int
+    provenance_links: int
+    node_types: Mapping[str, int]
+
+
+@dataclass(frozen=True)
 class CycleJob:
     id: str
     status: str

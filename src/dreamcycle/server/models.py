@@ -9,7 +9,13 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from dreamcycle.server.jobs import CycleJobState
-from dreamcycle.types import DistanceMetric, MemoryRecord
+from dreamcycle.types import (
+    DistanceMetric,
+    KnowledgeEdge,
+    KnowledgeNode,
+    KnowledgeStats,
+    MemoryRecord,
+)
 
 
 class StrictRequest(BaseModel):
@@ -56,6 +62,22 @@ class MemoryReviewRequest(StrictRequest):
     approved_for_training: bool = False
 
 
+class KnowledgePromoteRequest(StrictRequest):
+    memory_ids: tuple[str, ...] = Field(min_length=1)
+    node_type: str = Field(default="validated_memory", min_length=1, max_length=100)
+    key: str = Field(min_length=1, max_length=240)
+    content: str = Field(min_length=1)
+    confidence: float = Field(default=0.8, ge=0, le=1)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class KnowledgeSearchRequest(StrictRequest):
+    query: str = Field(min_length=1)
+    limit: int = Field(default=10, ge=1, le=200)
+    node_type: str | None = Field(default=None, max_length=100)
+    metric: DistanceMetric | None = None
+
+
 class MemoryItem(BaseModel):
     id: str
     namespace: str
@@ -88,6 +110,65 @@ class MemoryTurnResponse(BaseModel):
 
 class MemorySearchResponse(BaseModel):
     memories: list[MemoryItem]
+
+
+class KnowledgeItem(BaseModel):
+    id: str
+    namespace: str
+    user_id: str
+    node_type: str
+    key: str
+    content: str
+    confidence: float
+    metadata: Mapping[str, Any]
+    created_at: datetime
+    updated_at: datetime
+    distance: float | None = None
+    similarity: float | None = None
+
+    @classmethod
+    def from_node(cls, node: KnowledgeNode) -> KnowledgeItem:
+        return cls(**node.__dict__)
+
+
+class KnowledgeEdgeItem(BaseModel):
+    id: str
+    namespace: str
+    user_id: str
+    source_id: str
+    target_id: str
+    relation: str
+    weight: float
+    metadata: Mapping[str, Any]
+    created_at: datetime
+
+    @classmethod
+    def from_edge(cls, edge: KnowledgeEdge) -> KnowledgeEdgeItem:
+        return cls(**edge.__dict__)
+
+
+class KnowledgeNeighborItem(BaseModel):
+    edge: KnowledgeEdgeItem
+    node: KnowledgeItem
+
+
+class KnowledgeSearchResponse(BaseModel):
+    nodes: list[KnowledgeItem]
+
+
+class KnowledgeNeighborsResponse(BaseModel):
+    neighbors: list[KnowledgeNeighborItem]
+
+
+class KnowledgeStatsResponse(BaseModel):
+    nodes: int
+    edges: int
+    provenance_links: int
+    node_types: Mapping[str, int]
+
+    @classmethod
+    def from_stats(cls, stats: KnowledgeStats) -> KnowledgeStatsResponse:
+        return cls(**stats.__dict__)
 
 
 class MutationResponse(BaseModel):

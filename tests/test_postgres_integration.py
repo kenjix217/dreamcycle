@@ -4,6 +4,7 @@ from uuid import uuid4
 import psycopg
 import pytest
 
+from dreamcycle.errors import ConfigurationError
 from dreamcycle.memory import CallableEmbeddingProvider, PostgresMemory, PostgresMemoryConfig
 from dreamcycle.types import DistanceMetric
 
@@ -69,8 +70,17 @@ def test_l2_l3_and_namespace_isolation(stores):
     assert len(candidates) == 1
     assert candidates[0].source_ids == (user.id, assistant.id)
 
+    raw = first.remember("Do not promote raw memory.", role="assistant")
+    with pytest.raises(ConfigurationError, match="reviewed, approved, successful L2"):
+        first.promote_to_l3(
+            [raw.id],
+            node_type="practice",
+            key="raw-memory",
+            content="Raw memory should not become durable knowledge.",
+        )
+
     node = first.promote_to_l3(
-        [user.id, assistant.id],
+        [assistant.id],
         node_type="practice",
         key="focused-tests",
         content="Use focused tests for behavior changes.",
@@ -84,6 +94,10 @@ def test_l2_l3_and_namespace_isolation(stores):
     edge = first.link_knowledge(node.id, related.id, "uses")
     assert edge.namespace == "first"
     assert first.neighbors(node.id)[0][1].id == related.id
+    stats = first.knowledge_stats()
+    assert stats.nodes == 2
+    assert stats.edges == 1
+    assert stats.provenance_links == 1
     with pytest.raises(psycopg.errors.ForeignKeyViolation):
         first.link_knowledge(node.id, second_node.id, "must-not-cross-scope")
     assert {item.id for item in second.recall_knowledge("focused tests")} == {second_node.id}

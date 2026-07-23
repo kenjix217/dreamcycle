@@ -3,7 +3,7 @@ def test_core_import_does_not_load_transformers():
 
     import dreamcycle
 
-    assert dreamcycle.__version__ == "0.3.1"
+    assert dreamcycle.__version__ == "0.3.2"
     assert "transformers" not in sys.modules
     assert "torch" not in sys.modules
 
