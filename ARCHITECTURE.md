@@ -48,6 +48,7 @@ flowchart TB
         Auth["API-key identity binding"]
         API["Vendor memory API"]
         Proxy["Chat Completions proxy"]
+        Hermes["Hermes command surface"]
         Memory["Scoped memory service"]
         Jobs["Cycle job manager"]
         Dataset["Reviewed dataset forge"]
@@ -62,8 +63,10 @@ flowchart TB
 
     UI -->|"SDK calls"| Auth
     UI -->|"OpenAI-compatible request"| Auth
+    UI -->|"Hermes command"| Hermes
     Auth --> API
     Auth --> Proxy
+    Hermes -->|"SDK call"| Auth
     API --> Memory
     Proxy --> Memory
     Memory <--> PG
@@ -78,6 +81,7 @@ flowchart TB
     Evaluator -->|"pass"| Adapters
     Evaluator -->|"reject"| Jobs
     Adapters -.->|"vendor loads active adapter"| Runtime
+    Hermes -->|"status or confirmed rollback"| Adapters
 ```
 
 ## Three Integration Shapes
@@ -280,6 +284,50 @@ Promotion copies a candidate into a versioned directory and atomically updates
 the active pointer. The previous pointer gives the operator one-step rollback.
 Candidate and active paths are constrained to configured roots.
 
+### Hermes Control Surface
+
+Hermes does not need to own DreamCycle internals. The integration surface is a
+thin command wrapper over the existing SDK:
+
+```text
+dreamcycle-hermes status
+dreamcycle-hermes rollback --confirm
+```
+
+`status` is read-only and returns the active adapter pointer. `rollback` is
+mutation-capable and refuses to run unless the calling tool passes explicit
+confirmation. A chat interface should ask the user first, then call the command
+with `--confirm` only after that approval.
+
+```mermaid
+sequenceDiagram
+    participant User as Operator
+    participant Hermes as Hermes conversation
+    participant Command as dreamcycle-hermes
+    participant API as DreamCycle API
+    participant Vault as Adapter vault
+
+    User->>Hermes: Show me the active DreamCycle adapter
+    Hermes->>Command: status
+    Command->>API: GET /v1/adapters/active
+    API->>Vault: read active pointer
+    Vault-->>API: active adapter path
+    API-->>Command: adapter state
+    Command-->>Hermes: status payload
+
+    User->>Hermes: Roll back to the previous adapter
+    Hermes->>User: Confirm rollback?
+    User-->>Hermes: Confirm
+    Hermes->>Command: rollback --confirm
+    Command->>API: POST /v1/adapters/rollback
+    API->>Vault: restore previous pointer
+    Vault-->>API: rollback result
+    API-->>Command: adapter state
+```
+
+The command layer exists so Hermes, OpenClaw, shell scripts, or a UI button can
+share the same behavior. It is not a second backend.
+
 ## Failure Semantics
 
 DreamCycle tries to make failure boring and visible.
@@ -297,6 +345,7 @@ DreamCycle tries to make failure boring and visible.
 | Training is not configured | `503`; no fake queued job |
 | Candidate fails evaluation | Rejected; active adapter is unchanged |
 | Promotion fails | Failed report; active pointer is not relabeled as success |
+| Agent requests rollback without confirmation | Command refuses before backend mutation |
 
 ## Process and Deployment Boundaries
 
@@ -340,6 +389,10 @@ dreamcycle/
   sdk/
     client.py            synchronous vendor SDK
     models.py            dependency-light SDK results
+  hermes/
+    commands.py          importable status and confirmation-gated rollback facade
+    cli.py               dreamcycle-hermes command wrapper
+    plugin.py            tiny hook module for Hermes-style chat tools
   server/
     auth.py              API-key identity binding
     app.py               HTTP contract

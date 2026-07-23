@@ -2,6 +2,16 @@
 
 All notable changes to DreamCycle are documented here.
 
+## 0.3.0 - 2026-07-23
+
+- Added the `dreamcycle-hermes` command surface for Hermes-style adapter status
+  and confirmation-gated rollback.
+- Added importable Hermes helper hooks for chat tools that want to expose
+  DreamCycle adapter control without depending on a specific Hermes runtime.
+- Added Hermes install, smoke-check, and release helper scripts referenced by
+  the DreamCycle Hermes memory skill.
+- Included the public `skills/` folder in source distributions.
+
 ## 0.2.2 - 2026-07-16
 
 - Removed the internal `docs/` folder from tracked public source.

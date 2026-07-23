@@ -23,7 +23,7 @@ DreamCycle was created by **Kenny Jin** for builders who want local AI to become
 more useful over time without turning production into an uncontrolled training
 experiment.
 
-> **DreamCycle is an early `0.2.2` alpha.** If memory-native, locally
+> **DreamCycle is an early `0.3.0` alpha.** If memory-native, locally
 > controlled AI is useful to you, try the five-minute demo and open an issue
 > with the first rough edge you hit. That feedback will shape the next release.
 
@@ -122,6 +122,7 @@ failure boundaries are in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 - Observe and retrieve modes for `POST /v1/chat/completions`.
 - Non-streaming and SSE streaming response capture.
 - Asynchronous dream-cycle jobs with truthful status reporting.
+- Hermes-compatible adapter status and confirmation-gated rollback commands.
 - Optional local Transformers/PEFT LoRA training.
 - Baseline-versus-candidate perplexity evaluation.
 - Atomic adapter promotion and one-step rollback.
@@ -179,7 +180,7 @@ Core memory and orchestration:
 pip install dreamcycle
 ```
 
-Python vendor SDK:
+Python vendor SDK and Hermes/agent-shell commands:
 
 ```bash
 pip install 'dreamcycle[sdk]'
@@ -353,6 +354,65 @@ succeeded or the candidate was promoted.
 The built-in evaluator compares candidate and baseline perplexity on held-out
 data. Coding, classification, tool-use, and domain products should plug in an
 evaluator that measures their real target behavior.
+
+### Control rollback from Hermes or another agent shell
+
+Rollback already lives in the backend API. DreamCycle `0.3.0` adds a small
+operator command surface that Hermes, OpenClaw, or another local agent shell can
+wrap without changing the host platform:
+
+```bash
+dreamcycle-hermes status \
+  --url http://127.0.0.1:8765 \
+  --api-key "$DREAMCYCLE_API_KEY"
+```
+
+For machine-readable chat tools:
+
+```bash
+dreamcycle-hermes --json status
+```
+
+Rollback is deliberately confirmation-gated. The command refuses to mutate the
+active adapter unless the operator has already approved it:
+
+```bash
+dreamcycle-hermes rollback
+# refuses and explains that confirmation is required
+
+dreamcycle-hermes rollback --confirm
+# restores the previous promoted adapter
+```
+
+Hermes can map this cleanly to natural-language controls:
+
+```text
+"Show me the active DreamCycle adapter." -> dreamcycle-hermes status
+"Roll back to the previous adapter."    -> ask for confirmation, then rollback --confirm
+```
+
+Python wrappers can import the same surface:
+
+```python
+from dreamcycle.hermes.plugin import rollback, status
+
+print(status())
+print(rollback(confirm=True))
+```
+
+The intended flow is:
+
+```text
+Hermes conversation
+-> DreamCycle stores the turn
+-> relevant memories are recalled later
+-> selected records are reviewed
+-> approved records become a dataset
+-> optional LoRA candidate is trained
+-> candidate is evaluated
+-> candidate is promoted or rejected
+-> previous adapter remains available for confirmed rollback
+```
 
 ## Bring Your Own Model Stack
 

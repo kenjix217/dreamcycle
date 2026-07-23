@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dreamcycle"
-version = "0.2.2"
+version = "0.3.0"
 description = "A guarded local-model learning cycle with PostgreSQL/pgvector L2 and L3 memory"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -61,6 +61,7 @@ dev = [
 
 [project.scripts]
 dreamcycle-server = "dreamcycle.server.cli:main"
+dreamcycle-hermes = "dreamcycle.hermes.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/kenjix217/dreamcycle"
@@ -75,6 +76,7 @@ include = [
   "/src",
   "/tests",
   "/examples",
+  "/skills",
   "/scripts",
   "/docker-compose.yml",
   "/ARCHITECTURE.md",

@@ -1,17 +1,17 @@
 ---
-description: Install and wire DreamCycle as a Hermes memory provider for other users.
+description: Install and wire DreamCycle as a Hermes memory and rollback command helper.
 name: dreamcycle-hermes-memory
-summary: Install and wire DreamCycle memory provider into Hermes via `~/.hermes/plugins/dreamcycle`.
+summary: Install a Hermes shim for DreamCycle status and confirmation-gated rollback.
 category: software-development
 ---
 
-# DreamCycle memory provider for Hermes
+# DreamCycle Hermes helper
 
 ## What this skill does
 
-This skill gives other Hermes users a one-command way to install the DreamCycle
-memory plugin, point Hermes at a running DreamCycle sidecar, and run a quick
-validation smoke check.
+This skill gives Hermes users a one-command way to install the DreamCycle
+helper shim, point Hermes at a running DreamCycle sidecar, and expose adapter
+status plus confirmation-gated rollback.
 
 ## Prerequisites
 
@@ -36,16 +36,16 @@ Set these variables in your Hermes runtime config (equivalent to your profile en
 
 - `DREAMCYCLE_BASE_URL`
 - `DREAMCYCLE_API_KEY`
-- `DREAMCYCLE_NAMESPACE`
-- `DREAMCYCLE_USER_ID`
-- `DREAMCYCLE_SOURCE=hermes`
 
-Then:
+Then Hermes, shell scripts, or another chat tool can call:
 
 ```bash
-hermes config set memory.provider dreamcycle
-hermes memory status
+dreamcycle-hermes status
+dreamcycle-hermes rollback --confirm
 ```
+
+Rollback must be confirmation-gated in the caller. Ask the user first, then call
+`rollback --confirm` only after approval.
 
 ## Smoke check
 
@@ -57,8 +57,10 @@ python scripts/hermes_sidecar_smoke.py --dry-run
 
 Expected:
 
-- `health ok`
-- provider endpoints reachable for `/discover`, `/write`, `/read`, `/search`, `/prefetch`
+- `command ok`
+- configured sidecar URL
+- API-key status
+- rollback gate reminder
 
 ## Verify install from this package
 
