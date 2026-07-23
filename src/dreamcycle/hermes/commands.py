@@ -7,9 +7,12 @@ surface small, explicit, and safe to wrap from chat tools.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Literal, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
-from dreamcycle.sdk.models import AdapterState
+if TYPE_CHECKING:
+    from dreamcycle.sdk.models import AdapterState
+else:
+    AdapterState = Any
 
 
 class RollbackConfirmationRequired(Exception):

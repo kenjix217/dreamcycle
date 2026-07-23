@@ -3,7 +3,7 @@ def test_core_import_does_not_load_transformers():
 
     import dreamcycle
 
-    assert dreamcycle.__version__ == "0.3.0"
+    assert dreamcycle.__version__ == "0.3.1"
     assert "transformers" not in sys.modules
     assert "torch" not in sys.modules
 
@@ -18,6 +18,8 @@ def test_core_import_does_not_load_http_or_ml_extras_in_fresh_process():
         "assert 'httpx' not in sys.modules; "
         "import dreamcycle.server; "
         "assert 'fastapi' not in sys.modules; "
+        "assert 'httpx' not in sys.modules; "
+        "import dreamcycle.hermes; "
         "assert 'httpx' not in sys.modules; "
         "assert 'transformers' not in sys.modules; "
         "assert 'torch' not in sys.modules"

@@ -2,6 +2,15 @@
 
 All notable changes to DreamCycle are documented here.
 
+## 0.3.1 - 2026-07-23
+
+- Added Linux and macOS GitHub Release install bundles for x86_64 and arm64.
+- Added a one-line `curl | bash` installer plus a local `dreamcycle-update`
+  command for reinstalling/updating from the latest release bundle.
+- Added a packaged dashboard server wrapper so installed users can run
+  `dreamcycle-dashboard` without Vite.
+- Added CI packaging and GitHub Release asset upload for installer bundles.
+
 ## 0.3.0 - 2026-07-23
 
 - Added a standalone local Vite dashboard adapted from the hidden Nervous Dream

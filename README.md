@@ -23,7 +23,7 @@ DreamCycle was created by **Kenny Jin** for builders who want local AI to become
 more useful over time without turning production into an uncontrolled training
 experiment.
 
-> **DreamCycle is an early `0.3.0` alpha.** If memory-native, locally
+> **DreamCycle is an early `0.3.1` alpha.** If memory-native, locally
 > controlled AI is useful to you, try the five-minute demo and open an issue
 > with the first rough edge you hit. That feedback will shape the next release.
 
@@ -173,6 +173,33 @@ The demo compose file keeps PostgreSQL inside Docker's private network, so it
 does not collide with an existing local Postgres server on `5432`.
 
 ### Install the mode you need
+
+One-line local install or update for Linux and macOS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kenjix217/dreamcycle/main/scripts/install.sh | bash
+```
+
+Requires `python3` 3.10 or newer, `curl`, and `tar`.
+
+The installer downloads the latest GitHub Release bundle for your OS/CPU,
+creates `~/.dreamcycle/venv`, installs DreamCycle with the server, embedding,
+and SDK extras, installs the built dashboard, and writes command wrappers to
+`~/.local/bin`:
+
+```bash
+dreamcycle-server
+dreamcycle-hermes
+dreamcycle-dashboard
+dreamcycle-update
+```
+
+Run `dreamcycle-update` later to pull the newest release bundle into the same
+local environment. If `~/.local/bin` is not on your path, add:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
 
 Core memory and orchestration:
 

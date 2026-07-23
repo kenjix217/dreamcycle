@@ -409,6 +409,22 @@ One module owns one cohesive responsibility. Core imports remain independent of
 FastAPI, HTTPX, Transformers, PEFT, and PyTorch until those features are
 explicitly requested.
 
+## Install And Update Packaging
+
+Tagged releases build four install bundles:
+
+```text
+dreamcycle-VERSION-linux-x86_64.tar.gz
+dreamcycle-VERSION-linux-arm64.tar.gz
+dreamcycle-VERSION-macos-x86_64.tar.gz
+dreamcycle-VERSION-macos-arm64.tar.gz
+```
+
+The public `scripts/install.sh` detects OS and CPU, downloads the matching
+GitHub Release bundle, installs the bundled wheel into `~/.dreamcycle/venv`,
+copies the built dashboard, and writes command wrappers into `~/.local/bin`.
+`dreamcycle-update` reruns the same installer against the latest release.
+
 ## What DreamCycle Does Not Own
 
 - The vendor's UI, agent framework, or product workflow.

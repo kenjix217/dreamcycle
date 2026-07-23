@@ -10,6 +10,7 @@ __pycache__/
 htmlcov/
 build/
 dist/
+release/
 output/playwright/
 dreamcycle-data/
 docs/
