@@ -355,6 +355,29 @@ The built-in evaluator compares candidate and baseline perplexity on held-out
 data. Coding, classification, tool-use, and domain products should plug in an
 evaluator that measures their real target behavior.
 
+## Local Dashboard
+
+DreamCycle now ships a standalone local dashboard inspired by the original
+Nervous Dream page design. It runs beside the sidecar and gives you a compact
+control surface for memory capture, recall, review, cycle launch, adapter
+status, and confirmation-gated rollback.
+
+```bash
+cd dashboard
+npm install
+npm run dev
+```
+
+Open the URL printed by Vite. By default the dashboard proxies
+`/dreamcycle-api` to `http://127.0.0.1:8765`, so start `dreamcycle-server`
+first and enter your `DREAMCYCLE_API_KEY` in the connection panel.
+
+To point the dashboard at a different sidecar:
+
+```bash
+DREAMCYCLE_DASHBOARD_API_URL=http://127.0.0.1:8765 npm run dev
+```
+
 ### Control rollback from Hermes or another agent shell
 
 Rollback already lives in the backend API. DreamCycle `0.3.0` adds a small

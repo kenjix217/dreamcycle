@@ -389,6 +389,7 @@ dreamcycle/
   sdk/
     client.py            synchronous vendor SDK
     models.py            dependency-light SDK results
+  dashboard/             standalone Vite dashboard for local operators
   hermes/
     commands.py          importable status and confirmation-gated rollback facade
     cli.py               dreamcycle-hermes command wrapper

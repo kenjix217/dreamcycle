@@ -18,6 +18,7 @@ def test_apache_license_notice_and_package_metadata_are_consistent():
     assert 'license-files = ["LICENSE", "NOTICE"]' in pyproject
     assert '{name = "Kenny Jin", email = "kenjix217@gmail.com"}' in pyproject
     assert '"/ARCHITECTURE.md"' in pyproject
+    assert '"/dashboard"' in pyproject
     assert '"/skills"' in pyproject
     assert architecture.count("```mermaid") >= 5
 

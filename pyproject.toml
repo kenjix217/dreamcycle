@@ -76,6 +76,7 @@ include = [
   "/src",
   "/tests",
   "/examples",
+  "/dashboard",
   "/skills",
   "/scripts",
   "/docker-compose.yml",

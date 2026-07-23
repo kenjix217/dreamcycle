@@ -4,6 +4,8 @@ All notable changes to DreamCycle are documented here.
 
 ## 0.3.0 - 2026-07-23
 
+- Added a standalone local Vite dashboard adapted from the hidden Nervous Dream
+  page design for memory, cycle, adapter, and rollback control.
 - Added the `dreamcycle-hermes` command surface for Hermes-style adapter status
   and confirmation-gated rollback.
 - Added importable Hermes helper hooks for chat tools that want to expose
